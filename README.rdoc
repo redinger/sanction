@@ -179,7 +179,7 @@ Each of the following methods are injected at the instance and class level. (Exc
 
   The _all version of with(*roles).
 
-* <tt>for(*principals)</tt>A
+* <tt>for(*principals)</tt>
 
   Provide any number of principals, for which you are searching for having a role/permission over the root permissionable.
 
