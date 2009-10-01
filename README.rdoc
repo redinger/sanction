@@ -157,7 +157,7 @@ Each of the following methods are injected at the instance and class level.
 
   Remove a role. Use the same signature provided to grant.
 
-* <tt>total<tt>
+* <tt>total</tt>
 
   [Only as a Class Method]
   This method is a helper for the COUNT QUIRK mentioned below.
