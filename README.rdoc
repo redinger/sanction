@@ -24,7 +24,7 @@ Is this user a super user?
   @user.has?(:super_user) #=> true/false
 
 You can even throw your own named scopes into the mix, or chain on an ActiveRecord find()
-  User.active.with(:admin) #=> [Users]
+  User.active.has(:admin) #=> [Users]
   Magazine.published.for(@user).with(:editor).find(:all, :conditions => {:subject => "Programming"}) #=> [Magazines]
   
 How about giving and removing permissions?
