@@ -1,0 +1,5 @@
+Use: 
+  
+  script/generate sanction
+
+Creates a database migration for the roles table and stubs the config/initializers/sanction.rb

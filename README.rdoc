@@ -1,0 +1,328 @@
+=Sanction
+A role based permissions management system designed to have an intuitive and useful API making an authorization system easy and painless. (Even Fun!)
+
+Sanction works on the basis of principals and permissionables. Principals are those classes which can hold agency over a permissionable. In the initial
+configuration of Sanction, you declare your principal and permissionable classes. These do not have to be disjoint sets. After setting up the principals
+and permissionables, Sanction employs the concept of a role, as being an arbitrary token acting over the relationship of a set of principals mapped to a 
+set of permissionables. The final stage of the Sanction configuration involves declaring these role definitions.
+
+One of the key advantages of Sanction is to be able to easily access these principals or permissionables, depending on the interest of the query. This 
+allows for generating a list of permissionables for a given principal with a certain role without having to iterate over a result set.
+
+<b>Enough with text, how about some quick examples:</b>
+
+How about getting all of the Users that are Magazine Editors?
+  User.with(:editor).over(Magazine) #=> [Users]
+    
+Or maybe you need to know if a specific user can read a page, without knowing their roles.
+  @user.has(:can_read).over?(@page) #=> true/false
+  
+Need to list all of the Magazines a user can edit?
+  Magazine.for(@user).with(:can_edit) #=> [Magazines]
+
+Is this user a super user?
+  @user.has?(:super_user) #=> true/false
+
+You can even throw your own named scopes into the mix, or chain on an ActiveRecord find()
+  User.active.with(:admin) #=> [Users]
+  Magazine.published.for(@user).with(:editor).find(:all, :conditions => {:subject => "Programming"}) #=> [Magazines]
+  
+How about giving and removing permissions?
+  @user.grant(:editor, @magazine)
+  @user.revoke(:editor, @magazine)
+  @user.revoke(:super_user)
+  
+Notice the grammer of the sentences. What you start with is what you end up with i.e., start your sentence with your desired objects. 
+If you just need a true/false answer, throw a ? on the last method. How much simpler could it get?
+
+<b>There are more examples at the end of this document.</b>  
+
+<b>Features</b>
+  - Intuitive API calls that can be composed to form sentences / questions based from principal or permissionable.
+  - Ability to chain custom scopes / finders into or after the Sanction role query api.
+  - Easily gather sets of principals or permissionables matching role criteria.
+
+=Install
+
+After cloning / downloading, use:
+
+  script/generate sanction
+
+This will stub out the config/initializers/sanction.rb used for configuration and will produce a migration for your roles table.
+Be sure to rake db:migrate to produce the roles table.
+
+=Config
+
+===Example
+
+  Sanction.configure do |config|
+    config.principals      = [Person, Login, User]
+    config.permissionables = [Person, Magazine]
+    
+    config.role :reader, Person => Magazine, :having => [:can_read]
+    config.role :editor, Person => Magazine, :having => [:can_edit],  :includes => [:reader]
+    config.role :writer, Person => Magazine, :having => [:can_write], :includes => [:reader]
+    config.role :owner,  Person => Magazine, :includes => [:editor, :writer]
+
+    config.role :super_user, Person => :global
+    config.role :boss,       Person => Person
+    config.role :admin,      [Person, Login, User] => :all, :having => :anything
+  end
+===Details
+<b>Declaring Principals</b>
+  
+In establishing the principal classes, you can supply an array of principals. Each of these principal classes
+will be injected with the appropriate API methods / scopes / and associations that constitute a Principal model within Sanction.
+
+<b>Declaring Permissionables</b>
+
+In establishing the permissionable classes, you can supply an array of permissionables. Each of these permissionable classes
+will be injected with the appropriate API methods / scopes / and associations that constitute a Permissionable model within Sanction.
+
+<b>Declaring Roles</b>
+
+In Sanction a role is defined as a name along with a relationship hash. When declaring this role additional options can also be declared.
+
+  config.role role_name, relationship, options
+  
+* role_name: an arbitrary string/symbol
+* relationship: a hash entry, defined as a set of Principals mapping to a set of Permissionables. Special tokens exist for mapping
+  to all permissionables(:all), or creating a role that is outside the context of permissionables (:global).
+  * :all
+
+    config.role :admin, Person => :all
+
+  * :global
+
+    config.role :super_user, Person => :global
+
+* Additional Options are:
+  * :includes
+
+    allows you to declare a set of roles that are included in this role. When using includes, you must "include" a role that has already 
+    been defined previously within the configuration, in order to inherit the permissions. You can not, therefore use a self referential include. 
+    Violating this will not cause an error, but rather, you will not inherit any permissions from that undefined role.
+
+  * :having
+
+    allows you to declare a set of finer grain permissions that this role responds to. These can be shared across roles, to allow for:
+      config.role :reader, Person => Magazine, :having => [:can_read]
+      config.role :editor, Person => Magazine, :having => [:can_read]
+    In this example, asking for Person.has(:can_read) will yield both readers and editors
+  
+    * :anything
+
+        config.role :admin, Person => :all, :having => :anything
+      by using :having => :anything, any query to has() will return positive for that role, which can be useful for
+      "super user" type roles.
+
+=API
+<b>Principal Methods</b>
+
+Each of the following methods are injected at the instance and class level.
+
+* <tt>has(*roles)</tt>
+
+  provide any number of roles to look for. This is interpretted as asking looking for a principal that has ANY of these roles. Returns the principal objects matching.
+  can be supplied :any, to wildcard the search for any role.
+
+* <tt>has?(*roles)</tt>
+
+  the boolean form of has, returns true/false.
+
+* <tt>has_all?(*roles)</tt>
+
+  You can end a "sentence" with this method, allowing you to ask for ALL roles to be present. This is a more expensive operation, conducting a search on each role supplied as an argument.
+  The nature of the _all methods prevents further chaining.
+
+* <tt>over(*permissionables)</tt>
+
+  provide any number of permissionable instances or Klasses. This is interpretted as asking for principals having permissions over any of these permissionables. Returns the principal
+  objects matching. can be supplied :any, to wildcard the search for any permissionable.
+
+* <tt>over?(*permissionables)</tt>
+
+  The boolean form of over, returns true/false.
+
+* <tt>over_all?(*permissionables)</tt>
+
+  You can end a "sentence" with this method, allowing you to ask for a principal who has permission over ALL of these permisisonables. Again, this is subject to the _all
+  exception, in that this method prevents further chaining.
+
+* <tt>grant(role_name, [permissionable])</tt>
+
+  Assign a role to a principal over an optional permissionable. Validated against the current Sanction::Role::Definition .
+
+* <tt>revoke(role_name, [permissionable])</tt>
+
+  Remove a role. Use the same signature provided to grant.
+
+* <tt>total<tt>
+
+  [Only as a Class Method]
+  This method is a helper for the COUNT QUIRK mentioned below.
+
+<b>Permissionable Methods</b>
+
+Each of the following methods are injected at the instance and class level. (Except the total method)
+
+* <tt>with(*roles)</tt>
+
+  provide any number of roles to look for. This is interpreted as asking for a permissionable governed by a principal with any of these roles. (READ: OR search). Returns the permissionable objects
+  matching.
+
+* <tt>with?(*roles)</tt>
+
+  The boolean form of with(*roles), returns true/false.
+
+* <tt>with_all?(*roles)</tt>
+
+  The _all version of with(*roles).
+
+* <tt>for(*principals)</tt>A
+
+  Provide any number of principals, for which you are searching for having a role/permission over the root permissionable.
+
+* <tt>for?(*principals)</tt>
+
+  The boolean form for for(*principals), returns true/false.
+
+* <tt>for_all?(*principals)</tt>
+
+  The _all version of for(*principals).
+
+* <tt>authorize(role_name, principal)</tt>
+
+  Must provide a role name and principal.
+
+* <tt>unauthorize(role_name, principal)</tt>
+
+  Match the authorize call, to remove that entry.
+
+* <tt>total</tt>
+
+  [Only as a Class Method]
+  For the COUNT QUIRK.
+
+<b>Rake tasks</b>
+
+* <tt>rake sanction:role:describe</tt>
+* <tt>rake sanction:role:validate</tt>
+* <tt>rake sanction:role:cleanse</tt>
+
+=Many More Examples
+
+  Sanction.configure do |config|
+    config.principals      = [Person]
+    config.permissionables = [Person, Magazine]
+    
+    config.role :reader, Person => Magazine, :having => [:can_read]
+    config.role :editor, Person => Magazine, :having => [:can_edit],  :includes => [:reader]
+    config.role :writer, Person => Magazine, :having => [:can_write], :includes => [:reader]
+    config.role :owner,  Person => Magazine, :includes => [:editor, :writer]
+
+    config.role :boss,   Person => Person
+  end
+
+  Person.grant(:reader, Magazine.first)
+    # => Grants the :reader role for all People over Magazine (1)
+
+  Person.find(2).grant(:editor, Magazine.find(2))
+    # => Grants the :editor role for Person (2) over Magazine (2)
+
+  Person.find(3).grant(:owner, Magazine)
+    # => Grants the :owner role for Person (3) over all Magazines
+
+  Person.has?(:any)
+    # => Are there people who have any roles?
+    # => true
+
+  Person.has?(:can_edit)
+    # => Are there people who can edit?
+    # => True
+
+  Person.has(:can_edit).over?(Magazine.first)
+    # => Are there people who can edit Magazine(1) ?
+    # => True
+
+  Person.has(:can_edit)
+    # => List people who can edit
+    # => Person (2,3)
+ 
+  Person.has(:editor)
+    # => List people who have editor 
+    # => Person (2,3)
+
+  Person.has(:owner)
+    # => List people who have owner
+    # => Person (3)
+
+  Person.has(:can_edit).over(Magazine.find(3))
+    # => List people who can edit Magazine (3)
+    # => Person (3)
+
+  Magazine.for(Person.find(3)).with(:can_edit)
+    # => List the magazines that Person (3) :can_edit
+    # => Magazine.all
+
+  Magazine.for(Person.find(3)).with(:can_edit).find(:all, :conditions => ["magazines.created_at > ?", (Time.now - 1.week)])
+    # => List the magazines that Person (3) :can_edit with additional conditions.
+
+  Person.find(1).grant(:boss, Person.find(3))
+    # => Grants Person (1) to be the boss over Person (3) [ Gratz ]
+
+  Person.has(:can_edit).over(Magazine.find(2)).for(Person.first).with(:boss)
+    # => Returns the people who have editor over Magazine(2) and also have Person(1) as a boss
+
+  Person.first.has?(:editor)
+    # => Check if Person(1) has :editor role
+    # => false
+  
+  Person.find(2).has?(:editor)
+    # => Check if Person(2) has :editor role
+    # => true
+
+  Person.find(2).has(:editor).over?(Magazine.first)
+    # => Check if Person(2) has :editor role over Magazine(1)
+    # => false
+  
+  Person.find(2).has(:editor).over?(Magazine.find(2))
+    # => Check if Person(2) has :editor role over Magazine(2)
+    # => true
+
+So a potential application code example might be:
+
+* In the controller
+
+    # Find all magazines that the Person has some role over
+    @person = Person.find(parms[:person_id])
+    @magazines = Magazine.for(@person)
+    @magazines_for_editing = Magazine.for(@person).with(:can_edit)
+
+=Testing
+To run the Sanction test suite, which was generated with the help of plugin_a_week's plugin_test_helper, step into the
+vendor/plugins/sanction and run rake test.
+
+=Quirks
+<b>Count</b>
+
+Performing a '.count' at the end of a Sanction query, with its implied count(*), can lead to misleading totals. The best thing of course is to:
+  
+  .count(:all, :select => "DISTINCT tablename.primary_key")
+
+so we have a helper method to do just this. Each principal/permissionable has a class method:
+  
+  Person.total
+  Magazine.total
+  Magazines::Article.total
+
+Append that at the end of any query:
+
+  Person.has(:editor).total
+
+To get the accurate size.
+
+=Comments/Questions
+Let us know matthewvermaak [at] gmail {dot} com / peterleonhardt {at} gmail [dot] com
+
+Copyright (c) 2009 Matthew Vermaak & Peter Leonhardt, released under the MIT license
