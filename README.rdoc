@@ -12,7 +12,7 @@ allows for generating a list of permissionables for a given principal with a cer
 <b>Enough with text, how about some quick examples:</b>
 
 How about getting all of the Users that are Magazine Editors?
-  User.with(:editor).over(Magazine) #=> [Users]
+  User.has(:editor).over(Magazine) #=> [Users]
     
 Or maybe you need to know if a specific user can read a page, without knowing their roles.
   @user.has(:can_read).over?(@page) #=> true/false
