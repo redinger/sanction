@@ -149,11 +149,11 @@ Each of the following methods are injected at the instance and class level.
   You can end a "sentence" with this method, allowing you to ask for a principal who has permission over ALL of these permisisonables. Again, this is subject to the _all
   exception, in that this method prevents further chaining.
 
-* <tt>grant(role_name, [permissionable])</tt>
+* <tt>grant(role_name, permissionable = nil)</tt>
 
   Assign a role to a principal over an optional permissionable. Validated against the current Sanction::Role::Definition .
 
-* <tt>revoke(role_name, [permissionable])</tt>
+* <tt>revoke(role_name, permissionable = nil)</tt>
 
   Remove a role. Use the same signature provided to grant.
 
