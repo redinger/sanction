@@ -51,11 +51,11 @@ module Sanction
       end
 
       def self.for(principal)
-        roles_by_principal[principal] || []
+        roles_by_principal[principal.to_s] || []
       end
 
       def self.over(permissionable)
-        roles_by_permissionable[permissionable] || []
+        roles_by_permissionable[permissionable.to_s] || []
       end
       
       def self.with(name)
@@ -200,8 +200,12 @@ module Sanction
         if(arr == :all)
           self.principals = Sanction.principals
         end
-     
-        self.principals = [self.principals] unless self.principals.is_a? Array
+    
+        if self.principals.is_a? Array
+          self.principals.map!(&:name)
+        else 
+          self.principals = [self.principals.name]
+        end
       end
 
       def attribute_permissionables(arr)
@@ -213,7 +217,11 @@ module Sanction
           self.permissionables = []
         end
 
-        self.permissionables = [self.permissionables] unless self.permissionables.is_a? Array
+        if self.permissionables.is_a? Array
+          self.permissionables.map!(&:name)
+        else
+          self.permissionables = [self.permissionables.name]
+        end
       end
 
       def establish_permissions(permission_options)
