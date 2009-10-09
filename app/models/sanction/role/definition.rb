@@ -198,7 +198,7 @@ module Sanction
       def attribute_principals(arr)
         self.principals = arr
         if(arr == :all)
-          self.principals = Sanction.principals
+          self.principals = Sanction.principals.dup
         end
     
         if self.principals.is_a? Array
@@ -211,7 +211,7 @@ module Sanction
       def attribute_permissionables(arr)
         self.permissionables = arr 
         if(arr == :all)
-          self.permissionables = Sanction.permissionables
+          self.permissionables = Sanction.permissionables.dup
         elsif(arr == :global)
           self.global = true
           self.permissionables = []
