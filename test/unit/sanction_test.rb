@@ -15,6 +15,8 @@ class SanctionTest < Test::Unit::TestCase
       config.role :writer, Person => Magazine, :having => [:can_write], :includes => [:reader]
       config.role :owner,  Person => Magazine, :includes => [:editor, :writer]
 
+      config.role :tester, Person => :all
+
       config.role :super_user, Person => :global, :having => :anything
       config.role :admin,      Person => :global
     end
