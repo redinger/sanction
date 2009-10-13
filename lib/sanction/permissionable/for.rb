@@ -10,16 +10,16 @@ module Sanction
         def self.extended(base)
           base.named_scope :for_scope_method, lambda {|*args| 
             if args.include? Sanction::Role::Definition::ANY_TOKEN
-              {:conditions => ["`#{ROLE_ALIAS}`.`principal_type` IS NOT NULL"]}
+              {:conditions => ["#{ROLE_ALIAS}.principal_type IS NOT NULL"]}
             else
               args.map {|a| raise Sanction::Role::Error::UnknownPrincipal.new("Unknown principal: #{a}") unless Sanction::Role::Definition.valid_principal? a }
 
               conds = []
               args.each do |arg|
                 if arg.is_a? Class
-                  conds << ["`#{ROLE_ALIAS}`.`principal_type` = ?", arg.to_s]
+                  conds << ["#{ROLE_ALIAS}.principal_type = ?", arg.to_s]
                 else
-                  conds << ["`#{ROLE_ALIAS}`.`principal_type` = ? AND (`#{ROLE_ALIAS}`.`principal_id` = ? OR `#{ROLE_ALIAS}`.`principal_id` IS NULL)", arg.class.name.to_s, arg.id]
+                  conds << ["#{ROLE_ALIAS}.principal_type = ? AND (#{ROLE_ALIAS}.principal_id = ? OR #{ROLE_ALIAS}.principal_id IS NULL)", arg.class.name.to_s, arg.id]
                 end 
               end 
               conditions = conds.map { |c| base.merge_conditions(c) }.join(" OR ")
@@ -28,14 +28,14 @@ module Sanction
           }
           base.named_scope :for_all_single_argument, lambda {|arg|
             if arg == Sanction::Role::Definition::ANY_TOKEN
-              {:conditions => ["`#{ROLE_ALIAS}`.`principal_type` IS NOT NULL"]}
+              {:conditions => ["#{ROLE_ALIAS}.principal_type IS NOT NULL"]}
             else
               raise Sanction::Role::Error::UnknownPrincipal.new("Unknown principal: #{arg}") unless Sanction::Role::Definition.valid_principal? ar
 
               if arg.is_a? Class
-                {:conditions => ["`#{ROLE_ALIAS}`.`principal_type` = ? AND `#{ROLE_ALIAS}`.`principal_id` IS NULL", arg.name.to_s]}
+                {:conditions => ["#{ROLE_ALIAS}.principal_type = ? AND #{ROLE_ALIAS}.principal_id IS NULL", arg.name.to_s]}
               else
-                {:conditions => ["`#{ROLE_ALIAS}`.`principal_type` = ? AND (`#{ROLE_ALIAS}`.`principal_id` = ? OR `#{ROLE_ALIAS}`.`principal_id` IS NULL)", arg.class.name.to_s, arg.id]}
+                {:conditions => ["#{ROLE_ALIAS}.principal_type = ? AND (#{ROLE_ALIAS}.principal_id = ? OR #{ROLE_ALIAS}.principal_id IS NULL)", arg.class.name.to_s, arg.id]}
               end
             end
           }

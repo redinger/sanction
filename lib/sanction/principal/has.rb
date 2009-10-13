@@ -10,7 +10,7 @@ module Sanction
         def self.extended(base)
           base.named_scope :has_scope_method, lambda {|*role_names| 
             if role_names.include? Sanction::Role::Definition::ANY_TOKEN
-              {:conditions => ["`" + ROLE_ALIAS + "`.`name` IS NOT NULL"]}
+              {:conditions => [ROLE_ALIAS + ".name IS NOT NULL"]}
             else
               role_names.map! do |role_or_permission|
                 roles_to_look_for = []
@@ -26,7 +26,7 @@ module Sanction
               role_names.flatten!
               role_names.uniq!
 
-              conditions = role_names.map {|r| base.merge_conditions(["`#{ROLE_ALIAS}`.`name` = ?", r.to_s])}.join(" OR ")
+              conditions = role_names.map {|r| base.merge_conditions(["#{ROLE_ALIAS}.name = ?", r.to_s])}.join(" OR ")
               {:conditions => conditions}
             end
           }

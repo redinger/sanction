@@ -24,16 +24,16 @@ module Sanction
         def self.extended(base)
           base.named_scope :over_scope_method, lambda {|*args|
             if args.include? Sanction::Role::Definition::ANY_TOKEN
-              {:conditions => ["`#{ROLE_ALIAS}`.`permissionable_type` IS NOT NULL"]}
+              {:conditions => ["#{ROLE_ALIAS}.permissionable_type IS NOT NULL"]}
             else
               args.map {|a| raise Sanction::Role::Error::UnknownPermissionable.new("Unknown permissionable: #{a}") unless Sanction::Role::Definition.valid_permissionable? a }
 
               conds = []
               args.each do |arg|
                 if arg.is_a? Class
-                  conds << ["`#{ROLE_ALIAS}`.`permissionable_type` = ?", arg.name.to_s]  # Need id = nil here?
+                  conds << ["#{ROLE_ALIAS}.permissionable_type = ?", arg.name.to_s]  # Need id = nil here?
                 else 
-                  conds << ["`#{ROLE_ALIAS}`.`permissionable_type` = ? AND (`#{ROLE_ALIAS}`.`permissionable_id` = ? OR `#{ROLE_ALIAS}`.`permissionable_id` IS NULL)", arg.class.name.to_s, arg.id]
+                  conds << ["#{ROLE_ALIAS}.permissionable_type = ? AND (#{ROLE_ALIAS}.permissionable_id = ? OR #{ROLE_ALIAS}.permissionable_id IS NULL)", arg.class.name.to_s, arg.id]
                 end 
               end
               conditions = conds.map { |c| base.merge_conditions(c) }.join(" OR ")
@@ -42,14 +42,14 @@ module Sanction
           }
           base.named_scope :over_all_single_argument, lambda {|arg|
             if arg == Sanction::Role::Definition::ANY_TOKEN
-              {:conditions => ["`#{ROLE_ALIAS}`.`permissionable_type` IS NOT NULL"]}
+              {:conditions => ["#{ROLE_ALIAS}.permissionable_type IS NOT NULL"]}
             else
               raise Sanction::Role::Error::UnknownPermissionable.new("Unknown permissionable: #{arg}") unless Sanction::Role::Definition.valid_permissionable? arg
 
               if arg.is_a? Class
-                {:conditions => ["`#{ROLE_ALIAS}`.`permissionable_type` = ? AND `#{ROLE_ALIAS}`.`permissionable_id` IS NULL", arg.name.to_s]}
+                {:conditions => ["#{ROLE_ALIAS}.permissionable_type = ? AND #{ROLE_ALIAS}.permissionable_id IS NULL", arg.name.to_s]}
               else
-                {:conditions => ["`#{ROLE_ALIAS}`.`permissionable_type` = ? AND (`#{ROLE_ALIAS}`.`permissionable_id` = ? OR `#{ROLE_ALIAS}`.`permissionable_id` IS NULL)", arg.class.name.to_s, arg.id]}
+                {:conditions => ["#{ROLE_ALIAS}.permissionable_type = ? AND (#{ROLE_ALIAS}.permissionable_id = ? OR #{ROLE_ALIAS}.permissionable_id IS NULL)", arg.class.name.to_s, arg.id]}
               end
             end
           }
